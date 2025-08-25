@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+<meta charset="UTF-8">
+<link rel="manifest" href="manifest.webmanifest">
+<script>
+if ('serviceWorker' in navigator) {
+navigator.serviceWorker.register('sw.js');
+}
+</script>
+<link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link rel="shortcut icon" href="/favicon.ico" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+<title>محاسبه تولید و توقف</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {
+font-family: sans-serif;
+direction: rtl;
+padding: 20px;
+background: #f0f0f0;
+max-width: 500px;
+margin: auto;
+}
+h2 {
+text-align: center;
+margin-bottom: 20px;
+}
+label {
+display: block;
+margin-top: 10px;
+font-size: 16px;
+}
+input {
+width: 100%;
+padding: 10px;
+font-size: 16px;
+margin-top: 5px;
+box-sizing: border-box;
+border: 1px solid #ccc;
+border-radius: 6px;
+}
+button {
+width: 100%;
+padding: 12px;
+font-size: 16px;
+margin-top: 20px;
+background-color: #2196f3;
+color: white;
+border: none;
+border-radius: 6px;
+cursor: pointer;
+}
+button:hover {
+background-color: #1976d2;
+}
+.result {
+margin-top: 25px;
+background: white;
+padding: 15px;
+border-radius: 8px;
+font-size: 16px;
+line-height: 1.8;
+box-shadow: 0 0 5px rgba(0,0,0,0.1);
+}
+</style>
+</head>
+<body>
+<h2>فرم محاسبه تولید</h2>
+
+<label>⏱ زمان ضرب دستگاه (ثانیه):</label>
+<input type="number" id="cycleTime">
+
+<label>🕒 ساعت شروع:</label>
+<input type="number" id="startHour" placeholder="ساعت">
+<input type="number" id="startMinute" placeholder="دقیقه">
+
+<label>🕔 ساعت پایان:</label>
+<input type="number" id="endHour" placeholder="ساعت">
+<input type="number" id="endMinute" placeholder="دقیقه">
+
+<label>🔢 مقدار ضرب زده شده:</label>
+<input type="number" id="produced">
+
+<label>🧩 تعداد کویته فعال:</label>
+<input type="number" id="activeCavity">
+
+<label>📦 مانده در خط شیفت قبل:</label>
+<input type="number" id="previousRemain">
+
+<label>🗑 تعداد ضایعات:</label>
+<input type="number" id="waste">
+
+<label>🏭 تعداد ورودی به انبار:</label>
+<input type="number" id="warehouseIn">
+
+<label>⚖️ وزن قطعه و راهگاه (گرم):</label>
+<input type="number" id="partWeight">
+
+<button onclick="calculate()">محاسبه</button>
+
+<div class="result" id="result"></div>
+
+<script>
+function calculate() {
+const cycleTime = parseFloat(document.getElementById('cycleTime').value);
+const startHour = parseInt(document.getElementById('startHour').value);
+const startMinute = parseInt(document.getElementById('startMinute').value);
+const endHour = parseInt(document.getElementById('endHour').value);
+const endMinute = parseInt(document.getElementById('endMinute').value);
+const produced = parseInt(document.getElementById('produced').value);
+const activeCavity = parseInt(document.getElementById('activeCavity').value);
+const previousRemain = parseInt(document.getElementById('previousRemain').value);
+const waste = parseInt(document.getElementById('waste').value);
+const warehouseIn = parseInt(document.getElementById('warehouseIn').value);
+const partWeight = parseFloat(document.getElementById('partWeight').value);
+
+const startSec = (startHour * 60 + startMinute) * 60;
+const endSec = (endHour * 60 + endMinute) * 60;
+
+// بررسی ناهار و شام
+let lunchBreak = 0;
+if ((startHour < 12 || (startHour === 12 && startMinute < 30)) &&
+(endHour > 13 || (endHour === 13 && endMinute > 0))) {
+lunchBreak += 1800;
+}
+if ((startHour < 21 || (startHour === 21 && startMinute < 30)) &&
+(endHour > 22 || (endHour === 22 && endMinute > 0))) {
+lunchBreak += 1800;
+}
+
+const totalTimeSec = endSec - startSec - lunchBreak;
+const targetProduction = Math.floor(totalTimeSec / cycleTime);
+const actualProduction = isNaN(produced) ? targetProduction : produced;
+
+// توقف
+const missed = targetProduction - actualProduction;
+const downtimeMin = missed > 0 ? (missed * cycleTime) / 60 : 0;
+
+// مانده در خط
+const remainInLine = (actualProduction * activeCavity) + previousRemain - waste - warehouseIn;
+
+// مواد مصرفی
+let materialUsedKg = 0;
+if (!isNaN(partWeight)) {
+const totalParts = isNaN(produced) ? targetProduction : produced;
+materialUsedKg = (partWeight * totalParts) / 1000;
+}
+
+document.getElementById('result').innerHTML = `
+⏳ زمان توقف: ${downtimeMin.toFixed(2)} دقیقه<br>
+📦 مانده در خط: ${remainInLine}<br>
+⚖️ مواد مصرفی: ${materialUsedKg.toFixed(2)} کیلوگرم<br>
+🍽 زمان ناهار/شام لحاظ شده: ${lunchBreak / 60} دقیقه
+`;
+}
+</script>
+</body>
+</html>
