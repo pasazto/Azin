@@ -4,7 +4,9 @@ self.addEventListener('install', event => {
       return cache.addAll([
         'index.html',
         'manifest.webmanifest',
-        'icon.png'
+        'icon.png',
+        'web-app-manifest-192x192',
+        'web-app-manifest-512x512',
       ]);
     })
   );
